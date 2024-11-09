@@ -1,0 +1,81 @@
+import pandas as pd
+import numpy as np
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+import torch
+import torch.nn as nn
+import torch.optim as optim
+from torch.utils.data import DataLoader, TensorDataset
+
+data = pd.read_csv('audio_features_with_arousal.csv')
+
+X = data.drop(columns=['arousal']).values
+y = data['arousal'].values
+
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+
+scaler = StandardScaler()
+X_train = scaler.fit_transform(X_train)
+X_test = scaler.transform(X_test)
+
+X_train_tensor = torch.tensor(X_train, dtype=torch.float32)
+y_train_tensor = torch.tensor(y_train, dtype=torch.float32).view(-1, 1)
+X_test_tensor = torch.tensor(X_test, dtype=torch.float32)
+y_test_tensor = torch.tensor(y_test, dtype=torch.float32).view(-1, 1)
+
+train_dataset = TensorDataset(X_train_tensor, y_train_tensor)
+test_dataset = TensorDataset(X_test_tensor, y_test_tensor)
+
+train_loader = DataLoader(train_dataset, batch_size=32, shuffle=True)
+test_loader = DataLoader(test_dataset, batch_size=32, shuffle=False)
+
+
+class FeedforwardNN(nn.Module):
+    def __init__(self, input_size):
+        super(FeedforwardNN, self).__init__()
+        self.fc1 = nn.Linear(input_size, 64)
+        self.fc2 = nn.Linear(64, 32)
+        self.fc3 = nn.Linear(32, 1)
+        self.relu = nn.ReLU()
+
+    def forward(self, x):
+        x = self.relu(self.fc1(x))
+        x = self.relu(self.fc2(x))
+        x = self.fc3(x)
+        return x
+
+
+#Initialize the model
+input_size = X_train.shape[1]
+model = FeedforwardNN(input_size)
+criterion = nn.MSELoss()
+optimizer = optim.Adam(model.parameters(), lr=0.001)
+
+num_epochs = 10000
+for epoch in range(num_epochs):
+    model.train()
+    running_loss = 0.0
+
+    for X_batch, y_batch in train_loader:
+        optimizer.zero_grad()
+        outputs = model(X_batch)
+        loss = criterion(outputs, y_batch)
+        loss.backward()
+        optimizer.step()
+
+        running_loss += loss.item()
+
+    avg_loss = running_loss / len(train_loader)
+    print(f"Epoch [{epoch + 1}/{num_epochs}], Loss: {avg_loss:.4f}")
+
+model.eval()
+test_loss = 0.0
+with torch.no_grad():  
+    for X_batch, y_batch in test_loader:
+        outputs = model(X_batch)
+        loss = criterion(outputs, y_batch)
+        test_loss += loss.item()
+
+# Print average test loss
+test_loss /= len(test_loader)
+print(f"Test Loss: {test_loss:.4f}")
