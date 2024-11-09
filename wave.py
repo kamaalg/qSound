@@ -4,11 +4,7 @@ from OpenGL.GLU import *
 import math
 import time
 
-# Temporary data for wave properties
-amplitude = 0.5  # Amplitude of the wave
-frequency = 1.0  # Frequency of the wave
-phase = 0.0  # Initial phase
-
+amplitude, frequency, phase = 0.0, 0.0, 0.0
 start_time = time.time()
 
 def init():
@@ -53,9 +49,12 @@ def draw():
 
 def update(value):
     global amplitude, frequency, phase
-    phase += .01
-    amplitude += .01
-    frequency += .01
+    if amplitude > 1.0: amplitude = 0
+    if phase > 1*math.pi: phase = -1*math.pi
+    if frequency > 1.0: frequency = 0
+    phase += .001
+    amplitude += .001
+    frequency += .001
     glutPostRedisplay()
     glutTimerFunc(16, update, 0)  # Call this function again after 16 milliseconds (60 FPS)
 
