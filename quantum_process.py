@@ -98,7 +98,7 @@ entangle_groups(qc, qr_y_plus, qr_y_minus)
 statevector = Statevector.from_instruction(qc)
 num_total_qubits = qc.num_qubits
 
-# Collect coordinates for all qubits and prepare data for OpenGL rendering
+# Collect data for all qubits
 coordinates = []
 labels = []
 colors = []
@@ -121,22 +121,20 @@ for group_name, qr in zip(group_names, group_qubits):
         qubit_index = qc.find_bit(qubit).index
         bloch_vector = get_qubit_bloch_vector(statevector, qubit_index, num_total_qubits)
         x, y, z = bloch_vector.real
-        coordinates.append((x, y, z))
         labels.append(f"{group_name}_{qubit_index}")
         colors.append(group_colors[group_name])  # Assign color based on initial group
 
-        # Map Bloch vector to wave parameters
-        # Calculate amplitude based on the magnitude of the Bloch vector in the XY-plane
-        amplitude_wave = np.sqrt(x**2 + y**2) / np.sqrt(2)  # Normalize amplitude to [0, 1]
-
-        # Calculate frequency based on the angle between the qubit's state and the reference basis
-        # For example, use the polar angle θ (from the Z-axis) to determine the frequency
+        # Calculate Bloch sphere angles
         theta = np.arccos(z)  # θ ranges from 0 to π
-        frequency_wave = theta / np.pi  # Normalize frequency to [0, 1]
-
-        # Calculate phase based on the azimuthal angle φ in the XY-plane
         phi = np.arctan2(y, x)  # φ ranges from -π to π
-        phase_wave = (phi + np.pi) / (2 * np.pi)  # Normalize phase to [0, 1]
+
+        # Map to wave parameters
+        amplitude_wave = np.sin(theta / 2)  # Amplitude is sin(θ/2)
+        phase_wave = phi  # Phase is φ
+
+        # Map phase_wave to frequency (e.g., map φ from [-π, π] to a frequency range)
+        # For simplicity, we'll fix the frequency and use phase_wave as the phase
+        frequency_wave = 0.5  # Fixed normalized frequency for all qubits
 
         # Store data in the appropriate entangled set
         if group_name in ['plus', 'minus']:
@@ -147,34 +145,20 @@ for group_name, qr in zip(group_names, group_qubits):
             entangled_set_label = 'Entangled Set 3'
 
         entangled_data[entangled_set_label].append({
-            'position': (x, y, z),
-            'color': group_colors[group_name],
             'label': f"{group_name}_{qubit_index}",
-            'wave_parameters': {
-                'amplitude': amplitude_wave,
-                'frequency': frequency_wave,
-                'phase': phase_wave
-            }
+            'amplitude': amplitude_wave,
+            'frequency': frequency_wave,
+            'phase': phase_wave,
+            'color': group_colors[group_name]
         })
 
-# Now you can send 'entangled_data' to your OpenGL renderer
-# For demonstration purposes, we'll print the data for each entangled set
+        print(f"Qubit {labels[-1]}: Amplitude = {amplitude_wave:.4f}, Phase = {phase_wave:.4f} rad")
 
-print("\nData prepared for OpenGL rendering:")
-for entangled_set_label, qubit_data_list in entangled_data.items():
-    print(f"\n{entangled_set_label}:")
-    for data in qubit_data_list:
-        print(f"Label: {data['label']}, Position: {data['position']}, Color: {data['color']}, "
-              f"Amplitude: {data['wave_parameters']['amplitude']:.2f}, "
-              f"Frequency: {data['wave_parameters']['frequency']:.2f}, "
-              f"Phase: {data['wave_parameters']['phase']:.2f}")
+# Now you can send 'entangled_data' to your OpenGL renderer or process it further
 
-# Generate and plot composite wave for each entangled set separately
-# Define frequency range for mapping
-f_min = 200    # Minimum frequency in Hz
-f_max = 800    # Maximum frequency in Hz
-
-# Generate time array
+# Generate and plot wave for each entangled set separately
+# Define frequency range for mapping (if varying frequencies)
+f_base = 440    # Base frequency in Hz (A4 note)
 sampling_rate = 44100  # Standard audio sampling rate
 duration = 1.0         # Duration in seconds
 t = np.linspace(0, duration, int(sampling_rate * duration), endpoint=False)
@@ -186,18 +170,15 @@ for entangled_set_label, qubit_data_list in entangled_data.items():
 
     # Generate and sum waves for qubits in this entangled set
     for data in qubit_data_list:
-        amplitude_wave = data['wave_parameters']['amplitude']
-        frequency_wave = data['wave_parameters']['frequency']
-        phase_wave = data['wave_parameters']['phase']
+        amplitude_wave = data['amplitude']
+        frequency_wave = data['frequency']
+        phase_wave = data['phase']
 
         # Map normalized frequency to actual frequency in Hz
-        frequency_hz = frequency_wave * (f_max - f_min) + f_min
-
-        # Map normalized phase to actual phase in radians
-        phase_rad = phase_wave * 2 * np.pi
+        frequency_hz = f_base * frequency_wave  # Since frequency_wave is fixed at 0.5, frequency_hz = f_base * 0.5
 
         # Generate the wave for this qubit
-        wave = amplitude_wave * np.sin(2 * np.pi * frequency_hz * t + phase_rad)
+        wave = amplitude_wave * np.sin(2 * np.pi * frequency_hz * t + phase_wave)
         composite_wave += wave
 
     # Normalize the composite wave
@@ -208,6 +189,6 @@ for entangled_set_label, qubit_data_list in entangled_data.items():
     plt.plot(t, composite_wave)
     plt.xlabel('Time (s)')
     plt.ylabel('Amplitude')
-    plt.title(f'Composite Waveform from {entangled_set_label}')
+    plt.title(f'Waveform from {entangled_set_label}')
     plt.xlim(0, 0.01)  # Zoom in to the first 10 ms for better visibility
     plt.show()
