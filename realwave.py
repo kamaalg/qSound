@@ -1,9 +1,11 @@
 from OpenGL.GL import *
 from OpenGL.GLUT import *
 from OpenGL.GLU import *
-
+from intensityto import intensity_to_color, intensity_to_wave_color
 import math
 import time
+
+sr, sg, sb = 0.0, 0.0, 0.0
 
 def generate_wave_points(start_time, amplitude, frequency, phase):
     points = []
@@ -17,9 +19,11 @@ def generate_wave_points(start_time, amplitude, frequency, phase):
         points.append((x, y))
     return points
 
-def draw_wave(start_time, amplitude, frequency, phase):
+def draw_wave(start_time, amplitude, frequency, phase, intensity):
+    r, g, b = intensity_to_wave_color(intensity)
     points = generate_wave_points(start_time, amplitude, frequency, phase)
-    glColor3f(1.0, 1.0, 1.0)  # Blue color for the wave
+    glColor3f(r, g, b)  # Blue color for the wave
+    glLineWidth(4)
     glBegin(GL_LINE_STRIP)
     for x, y in points:
         glVertex2f(x, y)

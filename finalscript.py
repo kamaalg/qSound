@@ -63,7 +63,7 @@ def draw():
     particles = [particle for particle in particles if particle.update()]
     for particle in particles:
         particle.draw()
-    draw_wave(start_time, amplitude, frequency, phase)
+    draw_wave(start_time, amplitude, frequency, phase, intensity)
     glFlush()
     glutSwapBuffers()
 
