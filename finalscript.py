@@ -9,7 +9,7 @@ import random
 import math
 import time
 import threading
-
+from files_for_nn.neural_network import final_nn
 
 # global intensity
 intensity = -1.0
@@ -101,6 +101,7 @@ def update(value):
     # take averages for input layer
 
     # process intensity in NN, update intensity global val
+    final_nn()
 
     # quantum math
 
