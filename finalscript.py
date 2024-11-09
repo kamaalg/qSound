@@ -3,16 +3,26 @@ from OpenGL.GLUT import *
 from OpenGL.GLU import *
 from intensityto import *
 from particle import Particle, create_particle
+from quantum_process import generate_qubit_data
 from realwave import draw_wave
 import random
 import math
 import time
+import threading
+
 
 # global intensity
 intensity = -1.0
 
+#global
+qubits = []
+qubit_datas = []
+qubit_live= []
+counter = 0
+
 # global wave values
 amplitude, frequency, phase = 0.0, 0.0, 0.0
+amp, freq, pha = 1, 1, 1
 start_time = time.time()
 
 # List to store particles
@@ -30,13 +40,18 @@ def spawn():
 
 
 def update_wave():
-    global amplitude, frequency, phase
-    if amplitude > 1.0: amplitude = 0
-    if phase > 1*math.pi: phase = -1*math.pi
-    if frequency > 1.0: frequency = 0
-    phase += .001
-    amplitude += .001
-    frequency += .001
+    global amplitude, frequency, phase, amp, freq, pha
+
+    if abs(amplitude) > 1.0:
+        amp = -1.0*amp
+
+    if abs(phase) > 1*math.pi:
+        pha = -1.0*pha
+    if abs(frequency) > 1.0:
+        freq = -1.0*freq
+    phase += .001*pha
+    amplitude += .001*amp
+    frequency += .001*freq
 
 
 def init():
@@ -52,7 +67,7 @@ def init():
 
 
 def draw():
-    global particles
+    global particles, qubits, counter
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)  # Clear color and depth buffers
     glLoadIdentity()
     gluLookAt(0.0, 0.0, 5.0,  # Eye position
@@ -63,12 +78,24 @@ def draw():
     particles = [particle for particle in particles if particle.update()]
     for particle in particles:
         particle.draw()
-    draw_wave(start_time, amplitude, frequency, phase, intensity)
+
+    for index, (qubit, data, live) in enumerate(zip(qubits, qubit_datas, qubit_live)):
+        live['amplitude'] += (-data['amplitude']+qubit['amplitude'])/1000
+        live['frequency'] += (-data['frequency'] + qubit['frequency']) /1000
+        live['phase'] += (-data['phase'] + qubit['phase']) / 1000
+
+
+        draw_wave(start_time, 2*live['amplitude'], live['frequency']/2, live['phase']/2, intensity)
+    #draw_wave(start_time, 0.9*amplitude, 0.9*frequency, 0.9*phase, 0.9*intensity)
+    #draw_wave(start_time, 0.8*amplitude, 0.8*frequency, 0.8*phase, 0.8*intensity)
+
+
     glFlush()
     glutSwapBuffers()
 
 
 def update(value):
+    global counter
     # get audio output, output the current now, shift array
 
     # take averages for input layer
@@ -80,9 +107,27 @@ def update(value):
     spawn()  # create particles
 
     update_wave()  # update waves
+    counter += 1
 
     glutPostRedisplay()
     glutTimerFunc(16, update, 0)
+
+
+def qubit_thread():
+    global qubits, amplitude, frequency, phase, qubit_datas, qubit_live, counter
+    while True:
+        qubits_temp = generate_qubit_data(amplitude, frequency, phase)
+        if(len(qubits) == 0):
+            qubit_live = qubits
+            qubit_datas = qubits
+        qubits = qubits_temp
+        counter = 0
+        if(len(qubit_datas) == 0):
+            qubit_datas = qubits
+            qubit_live = qubits
+        time.sleep(0.01)  # Update qubits every 100 milliseconds
+
+
 
 def main():
     glutInit()
@@ -92,6 +137,13 @@ def main():
     init()
     glutDisplayFunc(draw)
     glutTimerFunc(16, update, 0)
+
+
+    # Start the qubit data generation thread
+    thread = threading.Thread(target=qubit_thread)
+    thread.daemon = True  # Ensures the thread exits when the main program ends
+    thread.start()
+
     glutMainLoop()
 
 main()
