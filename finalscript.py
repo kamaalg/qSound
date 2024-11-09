@@ -9,7 +9,8 @@ import random
 import math
 import time
 import threading
-from files_for_nn.neural_network import final_nn
+from files_for_nn.nn import final_nn
+import numpy as np
 
 # global intensity
 intensity = -1.0
@@ -101,7 +102,15 @@ def update(value):
     # take averages for input layer
 
     # process intensity in NN, update intensity global val
-    final_nn()
+    features = np.array([
+        120.5,  # tempo
+        0.032,  # rms
+        1500.3,  # spectral_centroid
+        0.45,  # zero_crossing_rate
+        -23.0, 17.5, 0.2, -12.3, 7.8, -3.4, 2.1, -6.5, 4.3, -1.2, 0.9, 1.5, -2.8, 3.0, -1.1, 5.6, 7.2, -0.5, 8.3
+        # MFCCs (20 values)
+    ])
+    final_nn(features)
 
     # quantum math
 
