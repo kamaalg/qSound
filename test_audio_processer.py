@@ -17,7 +17,6 @@ keys = [
     "zero_crossing_rate"
 ]
 this_run_data = {key: np.zeros(64) for key in keys}
-current_iteration = 0
 
 # Audio settings
 SAMPLE_RATE = 48000  # Must be one of webrtcvad's supported rates
@@ -54,69 +53,62 @@ def get_audio_parameters(buffer, sample_rate):
     time_period = 1 / frequency if frequency != 0 else float('inf')
     wavelength = SPEED_OF_SOUND / frequency if frequency != 0 else float('inf')
 
-    # Debug statement for buffer shape
-    print(f"Buffer shape before reshape: {buffer}")
+    reshaped_buffer = buffer.reshape((1,-1))
 
-    # Ensure buffer is a 2D array for librosa functions
-    buffer_reshaped = buffer.reshape(1, -1)
+    bpm = lr.feature.tempo(y=reshaped_buffer)
 
-    # Calculate bpm from avg difference between peaks in this sample
-    bpm = lr.beat.tempo(buffer_reshaped)[0]
+    rms = lr.feature.rms(y=reshaped_buffer)[0][0][0]
+    
+    spectral_centroid = lr.feature.spectral_centroid(y=reshaped_buffer, sr=sample_rate)[0][0][0]
 
-    # Debug statement for reshaped buffer
-    print(f"Buffer shape after reshape: {buffer_reshaped}")
-
-    rms = lr.feature.rms(y=buffer_reshaped)
-    spectral_centroid = lr.feature.spectral_centroid(y=buffer_reshaped, sr=sample_rate)
-    zero_crossing_rate = lr.feature.zero_crossing_rate(y=buffer_reshaped)
+    zero_crossing_rate = lr.feature.zero_crossing_rate(y=reshaped_buffer)[0][0][0]
 
     return amplitude, frequency, time_period, wavelength, bpm, rms, spectral_centroid, zero_crossing_rate
 
 # Callback function for audio processing - runs every 16ms on buffer
 def audio_callback(indata, frames, time, status):
-    global current_iteration
 
-    if status:
-        print(f"Status: {status}", file=sys.stderr)
+    current_iteration = 0
 
-    # Convert to 16-bit PCM
-    buffer_int16 = (indata[:, 0] * 32767).astype(np.int16)
+    while current_iteration < 63:
 
-    # Calculate audio parameters
-    amplitude, frequency, time_period, wavelength, bpm, rms, spectral_centroid, zero_crossing_rate = get_audio_parameters(indata[:, 0], SAMPLE_RATE)
+        if status:
+            print(f"Status: {status}", file=sys.stderr)
 
-    this_run_data["amplitude"][current_iteration] = amplitude
-    this_run_data["frequency"][current_iteration] = frequency
-    this_run_data["time_period"][current_iteration] = time_period
-    this_run_data["wavelength"][current_iteration] = wavelength
-    this_run_data["tempo"][current_iteration] = bpm
-    this_run_data["rms"][current_iteration] = rms
-    this_run_data["spectral_centroid"][current_iteration] = spectral_centroid
-    this_run_data["zero_crossing_rate"][current_iteration] = zero_crossing_rate
+        # Convert to 16-bit PCM
+        buffer_int16 = (indata[:, 0] * 32767).astype(np.int16)
 
-    current_iteration += 1
+        # Calculate audio parameters
+        this_run_data["amplitude"][current_iteration],
+        this_run_data["frequency"][current_iteration],
+        this_run_data["time_period"][current_iteration],
+        this_run_data["wavelength"][current_iteration],
+        this_run_data["tempo"][current_iteration],
+        this_run_data["rms"][current_iteration],
+        this_run_data["spectral_centroid"][current_iteration], 
+        this_run_data["zero_crossing_rate"][current_iteration] = get_audio_parameters(indata[:, 0], SAMPLE_RATE)
+
+        current_iteration += 1
 
 def main():
     input_device = get_blackhole_input_device()
     print(f"Using input device: {sd.query_devices(input_device)['name']}")
-
-    while current_iteration != 64:
-        try:
-            with sd.InputStream(
-                    samplerate=SAMPLE_RATE,
-                    device=input_device,
-                    channels=1,
-                    dtype='float32',
-                    blocksize=BUFFER_SIZE,
-                    callback=audio_callback
-            ):
-                while True:
-                    sd.sleep(int(BUFFER_DURATION * 1000))
-        except KeyboardInterrupt:
-            print("\nStopped by user.")
-            break
-        except Exception as e:
-            print(f"Error: {e}")
+    
+    try:
+        with sd.InputStream(
+                samplerate=SAMPLE_RATE,
+                device=input_device,
+                channels=1,
+                dtype='float32',
+                blocksize=BUFFER_SIZE,
+                callback=audio_callback
+        ):
+            while True:
+                sd.sleep(int(BUFFER_DURATION * 1000))
+    except KeyboardInterrupt:
+        print("\nStopped by user.")
+    except Exception as e:
+        print(f"Error: {e}")
 
     # Ensure DataFrame creation after loop ends
     df = pd.DataFrame.from_dict(this_run_data)
