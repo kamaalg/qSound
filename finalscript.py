@@ -58,21 +58,6 @@ def spawn():
         if intensity > 0.8:
             particles.append(create_particle(intensity))
 
-def update_wave():
-    global amplitude, frequency, phase, amp, freq, pha
-
-    # if abs(amplitude) > 1.0:
-    #     amp = -1.0*amp
-    #
-    # if abs(phase) > 1*math.pi:
-    #     pha = -1.0*pha
-    # if abs(frequency) > 1.0:
-    #     freq = -1.0*freq
-    # phase += .001*pha
-    # amplitude += .001*amp
-    # frequency += .001*freq
-
-
 def init():
     glEnable(GL_DEPTH_TEST)  # Enable depth testing for 3D rendering
     glEnable(GL_MULTISAMPLE)
@@ -120,7 +105,7 @@ def draw():
         # print("Q Freq")
         # print(qubit['frequency'])
         live['phase'] += (qubit['phase'] - live['phase']) * transition_speed
-        print(live)
+        # print(live)
         # Optional: Slight damping to stabilize values near the target
         # live['amplitude'] *= 0.99
         # live['frequency'] *= 0.99
@@ -161,7 +146,6 @@ def update(value):
 
     spawn()  # create particles
 
-    update_wave()  # update waves
     counter += 1
 
     glutPostRedisplay()
@@ -171,7 +155,6 @@ def update(value):
 def qubit_thread():
     global qubits, amplitude, frequency, phase, qubit_datas, qubit_live, counter, bpm, intensity
     while True:
-        #print("BPM2: ", bpm)
         bpm_map = (bpm - 1200) / 100
         if bpm_map < 0:
             bpm_map = 0.2
@@ -192,16 +175,13 @@ def qubit_thread():
 
         if math.isnan(gen_amp) or math.isnan(gen_freq) or math.isnan(gen_phase):
             print("NAN")
-        print(tintensity)
         #qubits_temp = generate_qubit_data((amplitude**2)*3 * bpm_map + (1+tintensity), frequency*2 * bpm_map, phase*2*bpm_map*(1+tintensity))
         #qubits_temp = generate_qubit_data((amplitude ** 2) * 3 * bpm_map + (1 + map_nan_to_number(intensity, 1)), frequency * 2 * bpm_map,
-         #                                 phase * 2 * bpm_map * (1 + map_nan_to_number(intensity, 1)))
+         #phase * 2 * bpm_map * (1 + map_nan_to_number(intensity, 1)))
         qubits_temp = generate_qubit_data(gen_amp, gen_freq,
                                           gen_phase)
 
-        print(qubits_temp)
         if(len(qubits) != 0):
-            #qubit_live = qubits
             qubit_datas = qubits
         qubits = qubits_temp
         counter = 0
@@ -225,14 +205,6 @@ def audio_thread():
         bpm = audio.bpm
         prev_features = features
         features = audio.features
-
-        # print("INTENSITY")
-        # print(intensity)
-        #print(phase)
-        # print("Prev")
-        # print(prev_features)
-        # print("Feat")
-        # print(features)
         time.sleep(0.16)
     audio.stop()
     time.sleep(0.16)  # Update qubits every 100 milliseconds
@@ -242,7 +214,8 @@ def main():
     glutInit()
     glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH | GLUT_MULTISAMPLE)
     glutInitWindowSize(1920, 1080)
-    glutCreateWindow("Particle System with Lifetime")
+    glutCreateWindow("qSounds")
+    #glutFullScreen()
     init()
     glutDisplayFunc(draw)
     glutTimerFunc(16, update, 0)

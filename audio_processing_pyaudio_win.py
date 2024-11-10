@@ -14,7 +14,7 @@ class AudioHandler(object):
         self.FORMAT = pyaudio.paFloat32
         self.CHANNELS, self.DEVICE_INDEX = self.get_audio_device()
         self.RATE = 48000
-        self.CHUNK = int(self.RATE * 0.1)  # 100ms
+        self.CHUNK = int(self.RATE * 0.2)  # 100ms
         self.buffer = np.array([], dtype=np.float32)  # Initialize buffer
         self.amplitude = 0.0
         self.frequency = 0.0
@@ -36,7 +36,8 @@ class AudioHandler(object):
                                   input=True,
                                   output=False,
                                   stream_callback=self.callback,
-                                  frames_per_buffer=self.CHUNK)
+                                  frames_per_buffer=self.CHUNK,
+                                  )
 
     def stop(self):
         self.stream.close()
@@ -59,7 +60,6 @@ class AudioHandler(object):
         # Append normalized data to buffer
         self.buffer = np.concatenate((self.buffer, normalized_buffer))
 
-
         # Limit buffer size to last 10 seconds
         max_buffer_size = self.RATE * 2
         if len(self.buffer) > max_buffer_size:
@@ -67,21 +67,16 @@ class AudioHandler(object):
 
         # Compute RMS (Root Mean Square)
         rms = np.sqrt(np.mean(self.buffer ** 2))
-        self.rms = rms
-        self.features[1] = rms
-        #print(f"Root Mean Square: {rms}")
-        #print(f"features[1] = {self.features[1]}")
+        self.rms = rms # for retrieval by quantum
+        self.features[1] = rms # as abv for array passed to neural
 
-        # Compute Zero Crossing Rate
+        # Compute zero crossing rate
         zero_crossings = np.where(np.diff(np.sign(self.buffer)))[0]
         zero_crossing_rate = len(zero_crossings) / len(self.buffer)
-        self.features[3] = zero_crossing_rate
-        #print(f"Zero Crossing Rate: {zero_crossing_rate}")
-        #print(f"features[3] = {self.features[3]}")
+        self.features[3] = zero_crossing_rate # array for nn
 
-        # Compute Amplitude
+        # Compute amplitude
         self.amplitude = np.max(np.abs(self.buffer[:30]))
-        #print(f"Amplitude: {self.amplitude}")
 
         # Compute FFT to find dominant frequency
         fft_values = fft(self.buffer)
@@ -96,40 +91,30 @@ class AudioHandler(object):
         fft_phases = np.angle(fft_values)  # Get phase for each frequency component
         positive_phases = fft_phases[:len(fft_phases) // 2]  # Phase of positive frequencies
         self.phase = positive_phases[idx]  # Phase of the dominant frequency
-        #print(f"Dominant Frequency: {self.frequency} Hz")
 
         # Calculate Spectral Centroid
         spectral_centroid = np.sum(positive_freqs * positive_magnitudes) / np.sum(positive_magnitudes)
-        self.spectral_centroid = spectral_centroid
+        self.spectral_centroid = spectral_centroid #TODO: repeated
         self.features[2] = spectral_centroid
-        #print(f"Spectral Centroid: {spectral_centroid} Hz")
-        #print(f"features[2] = {self.features[2]}")
 
         # Calculate Time Period and Wavelength
         time_period = 1 / self.frequency if self.frequency != 0 else float('inf')
-        #print(f"Time Period: {time_period} s")
         wavelength = SPEED_OF_SOUND / self.frequency if self.frequency != 0 else float('inf')
-        #print(f"Wavelength: {wavelength} m")
 
-        # Estimate BPM (Beats Per Minute)
+        # Estimate beats per minute
         bpm = self.estimate_bpm()
         self.features[0] = bpm; self.bpm = bpm
-        #print(f"Estimated BPM: {bpm}")
-        #print(f"features[0] = {self.features[0]}")
 
         # Compute MFCCs
         mfccs = librosa.feature.mfcc(y=numpy_array, sr=self.RATE, n_mfcc=20)
         mfccs_mean = np.mean(mfccs, axis=1)
-        #print("MFCCs (20 values):", mfccs_mean)
         self.features[3:23] = mfccs_mean
-
-        #print(f"self.features: {self.features}")
 
         return None, pyaudio.paContinue
 
     def estimate_bpm(self):
         # Parameters for onset detection
-        window_size = 4096
+        window_size = 1024
         hop_size = 512
 
         # Compute the energy of each frame
@@ -137,15 +122,17 @@ class AudioHandler(object):
         for i in range(0, len(self.buffer) - window_size, hop_size):
             frame = self.buffer[i:i + window_size]
             frame_energy = np.sum(frame ** 2)
-            energy.append(frame_energy)
-        energy = np.array(energy)
+            if frame_energy > 40:
+                energy.append(frame_energy)
 
         # Normalize energy
-        energy = energy / np.max(energy)
+        energy /= np.max(energy)
 
+        # filter
+        
         # Detect peaks in energy
         peaks = []
-        threshold = 0.01  # You may need to adjust this threshold
+        threshold = 0.6  # this is OK but 0.8 is a little better?
         for i in range(1, len(energy) - 1):
             if energy[i] > threshold and energy[i] > energy[i - 1] and energy[i] > energy[i + 1]:
                 peaks.append(i)
@@ -160,13 +147,3 @@ class AudioHandler(object):
             bpm = 0  # Not enough peaks to estimate BPM
 
         return bpm
-
-    def mainloop(self):
-        while self.stream.is_active():
-            time.sleep(0.1)
-
-
-# audio = AudioHandler()
-# audio.start()
-# audio.mainloop()
-# audio.stop()
