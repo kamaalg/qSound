@@ -21,7 +21,7 @@ class AudioHandler(object):
         self.FORMAT = pyaudio.paFloat32
         self.CHANNELS = 1
         self.RATE = 48000
-        self.CHUNK = 1024
+        self.CHUNK = int(self.RATE * 0.016) # ms
         self.p = None
         self.stream = None
         self.metastream: np.ndarray
@@ -50,11 +50,12 @@ class AudioHandler(object):
         #bpm = librosa.feature.tempo(y=numpy_array) -> record peaks from this iteration only
         # or build meta-stream arraylist??
         #print(f"BPM: {bpm}") #debug
-        rms = librosa.feature.rms(y=numpy_array)
-        print(f"Root mean square: {rms})")
-        spectral_centroid = librosa.feature.spectral_centroid(y=numpy_array)
+        rms = np.mean(librosa.feature.rms(y=numpy_array))
+        print(f"Root mean square: {rms}")
+        spectral_centroid = np.mean(librosa.feature.spectral_centroid(y=numpy_array))
         print(f"Spectral centroid: {spectral_centroid}")
-        zero_crossing_rate = librosa.feature.zero_crossing_rate(y=numpy_array)
+        zero_crossing_rate = np.mean(librosa.feature.zero_crossing_rate(y=numpy_array)) # mean of two frames
+        
         print(f"Zero crossing rate: {zero_crossing_rate}")
 
         amplitude = np.max(np.abs(numpy_array))
