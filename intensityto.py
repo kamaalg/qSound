@@ -1,7 +1,18 @@
 import random
 
 
-def intensity_to_color(intensity):
+def process_intensity(intensity):
+    pintensity = intensity*2
+    if pintensity > 1.0:
+        pintensity = 1.0
+
+    if pintensity < -1.0:
+        pintensity = -1.0
+    return pintensity
+
+
+def intensity_to_color(npintensity):
+    intensity = process_intensity(npintensity)
     r, g, b = 0.0, 0.0, 0.0
     if intensity < 0:
         mr = 0.5+-1*intensity/10
@@ -28,7 +39,8 @@ def intensity_to_color(intensity):
     return r, g, b
 
 
-def intensity_to_wave_color(intensity):
+def intensity_to_wave_color(npintensity):
+    intensity = process_intensity(npintensity)
     r, g, b = 0.0, 0.0, 0.0
     if intensity < 0:
         r = (0.5+-1*intensity/10)/2
@@ -54,14 +66,16 @@ def intensity_to_wave_color(intensity):
     return r, g, b
 
 
-def intensity_to_speed(intensity):
+def intensity_to_speed(npintensity):
+    intensity = process_intensity(npintensity)
     min_v = (intensity+1)/100
     max_v = -min_v
     return min_v, max_v
 
 
 
-def intensity_to_radius(intensity):
+def intensity_to_radius(npintensity):
+    intensity = process_intensity(npintensity)
     min_v = ((intensity-1)/1.5-.3)*4
     max_v = -min_v
     return min_v, max_v
