@@ -1,6 +1,7 @@
 import numpy as np
 import pyaudio
 import time
+import librosa
 from scipy.fft import fft, fftfreq
 
 SPEED_OF_SOUND = 343
@@ -8,8 +9,9 @@ SPEED_OF_SOUND = 343
 
 class AudioHandler(object):
     def __init__(self):
+        self.p = pyaudio.PyAudio()
         self.FORMAT = pyaudio.paFloat32
-        self.CHANNELS = 2  # Set to match BlackHole's 16 channels
+        self.CHANNELS, self.DEVICE_INDEX = self.get_audio_device()
         self.RATE = 48000
         self.CHUNK = int(self.RATE * 0.1)  # 100ms
         self.p = None
@@ -17,6 +19,20 @@ class AudioHandler(object):
         self.amplitude = 0.0
         self.frequency = 0.0
         self.phase = 0.0
+        self.features: np.ndarray = np.zeros(24)
+        # [tempo, rms, spectral_centroid, zero_crossing_rate, mfcc0.. mfcc19]
+
+    def get_audio_device(self):
+        for i in range(0, self.p.get_host_api_info_by_index(0).get('deviceCount')):
+            device_name: str = self.p.get_device_info_by_host_api_device_index(0,i).get('name')
+            # if windows using vb_cable pick lower index - probably won't fix since doesn't matter
+            if ("BlackHole" in device_name) or ("CABLE In 16ch" in device_name):
+                device_index: int = i
+                break
+
+        channels: int = self.p.get_device_info_by_host_api_device_index(0,device_index).get('maxOutputChannels')
+
+        return channels, device_index
 
     def start(self):
         self.p = pyaudio.PyAudio()
@@ -50,12 +66,16 @@ class AudioHandler(object):
 
         # Compute RMS (Root Mean Square)
         rms = np.sqrt(np.mean(self.buffer ** 2))
+        self.features[1] = rms
         print(f"Root Mean Square: {rms}")
+        print(f"features[1] = {self.features[1]}")
 
         # Compute Zero Crossing Rate
         zero_crossings = np.where(np.diff(np.sign(self.buffer)))[0]
         zero_crossing_rate = len(zero_crossings) / len(self.buffer)
+        self.features[3] = zero_crossing_rate
         print(f"Zero Crossing Rate: {zero_crossing_rate}")
+        print(f"features[3] = {self.features[3]}")
 
         # Compute Amplitude
         self.amplitude = np.max(np.abs(self.buffer))
@@ -78,7 +98,9 @@ class AudioHandler(object):
 
         # Calculate Spectral Centroid
         spectral_centroid = np.sum(positive_freqs * positive_magnitudes) / np.sum(positive_magnitudes)
+        self.features[2] = spectral_centroid
         print(f"Spectral Centroid: {spectral_centroid} Hz")
+        print(f"features[2] = {self.features[2]}")
 
         # Calculate Time Period and Wavelength
         time_period = 1 / self.frequency if self.frequency != 0 else float('inf')
@@ -88,7 +110,17 @@ class AudioHandler(object):
 
         # Estimate BPM (Beats Per Minute)
         bpm = self.estimate_bpm()
+        self.features[0] = bpm
         print(f"Estimated BPM: {bpm}")
+        print(f"features[0] = {self.features[0]}")
+
+        # Compute MFCCs
+        mfccs = librosa.feature.mfcc(y=numpy_array, sr=self.RATE, n_mfcc=20)
+        mfccs_mean = np.mean(mfccs, axis=1)
+        print("MFCCs (20 values):", mfccs_mean)
+        self.features[3:23] = mfccs_mean
+
+        print(f"self.features: {self.features}")
 
         return None, pyaudio.paContinue
 
