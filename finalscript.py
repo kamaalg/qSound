@@ -106,7 +106,7 @@ def update(value):
 
     if len(features) > 0:
         intensity = final_nn(features)
-        print(intensity)
+        #print(intensity)
 
     # quantum math
 
@@ -144,10 +144,10 @@ def audio_thread():
         prev_features = features
         features = audio.features
 
-        print("Prev")
-        print(prev_features)
-        print("Feat")
-        print(features)
+        # print("Prev")
+        # print(prev_features)
+        # print("Feat")
+        # print(features)
         time.sleep(0.16)
     audio.stop()
     time.sleep(0.16)  # Update qubits every 100 milliseconds
