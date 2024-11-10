@@ -145,7 +145,7 @@ def audio_thread():
         features = audio.features
 
 
-        print(amplitude)
+        print(phase)
         # print("Prev")
         # print(prev_features)
         # print("Feat")
