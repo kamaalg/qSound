@@ -19,6 +19,9 @@ class AudioHandler(object):
         self.amplitude = 0.0
         self.frequency = 0.0
         self.phase = 0.0
+        self.spectral_centroid = 0.0
+        self.rms = 0.0
+        self.bpm = 0.0
         self.features: np.ndarray = np.zeros(24)
         # [tempo, rms, spectral_centroid, zero_crossing_rate, mfcc0.. mfcc19]
 
@@ -50,14 +53,20 @@ class AudioHandler(object):
         self.p.terminate()
 
     def callback(self, in_data, frame_count, time_info, flag):
-
         numpy_array = np.frombuffer(in_data, dtype=np.float32)
 
         # Convert multi-channel audio to mono by averaging all channels
         numpy_array = numpy_array.reshape(-1, self.CHANNELS).mean(axis=1)
 
-        # Append new data to the buffer
-        self.buffer = np.concatenate((self.buffer, numpy_array))
+        # Normalize audio buffer data to keep amplitude consistent
+        max_amp = np.max(np.abs(numpy_array))
+        if max_amp > 0:
+            normalized_buffer = numpy_array / max_amp
+        else:
+            normalized_buffer = numpy_array
+
+        # Append normalized data to buffer
+        self.buffer = np.concatenate((self.buffer, normalized_buffer))
 
         # Limit buffer size to last 10 seconds
         max_buffer_size = self.RATE * 2
@@ -65,8 +74,8 @@ class AudioHandler(object):
             self.buffer = self.buffer[-max_buffer_size:]
 
         # Compute RMS (Root Mean Square)
-        rms = np.sqrt(np.mean(self.buffer ** 2))
-        self.features[1] = rms
+        self.rms = np.sqrt(np.mean(self.buffer ** 2))
+        self.features[1] = self.rms
         #print(f"Root Mean Square: {rms}")
         #print(f"features[1] = {self.features[1]}")
 
@@ -97,8 +106,8 @@ class AudioHandler(object):
         #print(f"Dominant Frequency: {self.frequency} Hz")
 
         # Calculate Spectral Centroid
-        spectral_centroid = np.sum(positive_freqs * positive_magnitudes) / np.sum(positive_magnitudes)
-        self.features[2] = spectral_centroid
+        self.spectral_centroid = np.sum(positive_freqs * positive_magnitudes) / np.sum(positive_magnitudes)
+        self.features[2] = self.spectral_centroid
         #print(f"Spectral Centroid: {spectral_centroid} Hz")
         #print(f"features[2] = {self.features[2]}")
 
@@ -109,8 +118,8 @@ class AudioHandler(object):
         #print(f"Wavelength: {wavelength} m")
 
         # Estimate BPM (Beats Per Minute)
-        bpm = self.estimate_bpm()
-        self.features[0] = bpm
+        self.bpm = self.estimate_bpm()
+        self.features[0] = self.bpm
         #print(f"Estimated BPM: {bpm}")
         #print(f"features[0] = {self.features[0]}")
 

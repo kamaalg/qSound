@@ -12,11 +12,14 @@ import threading
 from files_for_nn.nn import final_nn
 import numpy as np
 from audio_processing_pyaudio import AudioHandler
+from intensity import calculate_song_intensity
 
 
 # global intensity
 intensity = -1.0
 features = []
+intensities = []
+
 
 #global
 qubits = []
@@ -26,7 +29,8 @@ counter = 0
 
 
 # global wave values
-amplitude, frequency, phase = 0.0, 0.0, 0.0
+amplitude, frequency, phase, spectral_centroid  = 0.0, 0.0, 0.0, 0.0
+rms, bpm = 0.0, 0.0
 amp, freq, pha = 1, 1, 1
 start_time = time.time()
 
@@ -82,22 +86,39 @@ def draw():
         particle.draw()
 
     for index, (qubit, data, live) in enumerate(zip(qubits, qubit_datas, qubit_live)):
-        live['amplitude'] += (-data['amplitude']+qubit['amplitude'])/100
-        live['frequency'] += (-data['frequency'] + qubit['frequency'])/100
-        live['phase'] += (-data['phase'] + qubit['phase']) / 100
+        # Smoothly transition 'live' values towards 'qubit' values
+        transition_speed = 1.0 / 120  # ~12 frames to complete transition (200ms at 60 FPS)
 
+        live['amplitude'] += (qubit['amplitude'] - live['amplitude']) * transition_speed
+        temp = (qubit['frequency'] - live['frequency'])/(10)
+        if temp > 1.0:
+            temp = 1.0
 
-        draw_wave(start_time, 2*live['amplitude'], live['frequency']/3, live['phase'], intensity)
-    #draw_wave(start_time, 0.9*amplitude, 0.9*frequency, 0.9*phase, 0.9*intensity)
-    #draw_wave(start_time, 0.8*amplitude, 0.8*frequency, 0.8*phase, 0.8*intensity)
+        if temp < -1.0:
+            temp = -1.0
 
+        #print(temp)
+        live['frequency'] += temp /500
+        # print("Live Freq")
+        # print(live['frequency'])
+        # print("Q Freq")
+        # print(qubit['frequency'])
+        live['phase'] += (qubit['phase'] - live['phase']) * transition_speed
+
+        # Optional: Slight damping to stabilize values near the target
+        # live['amplitude'] *= 0.99
+        # live['frequency'] *= 0.99
+        # live['phase'] *= 0.99
+        #live['frequency']*live['amplitude']/4
+        tfreq = abs(( live['frequency']) / 4)
+        draw_wave(start_time, live['amplitude'], live['frequency'], live['phase'], intensity)
 
     glFlush()
     glutSwapBuffers()
 
 
 def update(value):
-    global counter, intensity
+    global counter, intensity, amplitude, frequency, phase, spectral_centroid, rms, bpm
     # get audio output, output the current now, shift array
 
     # take averages for input layer
@@ -105,7 +126,18 @@ def update(value):
     # process intensity in NN, update intensity global val
 
     if len(features) > 0:
-        intensity = final_nn(features)
+        #intensity = -1*calculate_song_intensity(amplitude, frequency, phase, spectral_centroid)
+        tintensity = final_nn(features)
+        print("INTENSE SET")
+        print(tintensity)
+        tintensity = (tintensity+.225)*8
+        #tintensity = calculate_song_intensity(amplitude, frequency, phase, spectral_centroid, rms, bpm)
+        print(tintensity)
+        if(len(intensities)>20):
+            intensities.pop(0)
+        intensities.append(tintensity)
+        print(intensities)
+        intensity = np.mean(intensities)
         #print(intensity)
 
     # quantum math
@@ -124,7 +156,7 @@ def qubit_thread():
     while True:
         qubits_temp = generate_qubit_data((amplitude**2)*3, frequency*2, phase*2)
         if(len(qubits) != 0):
-            qubit_live = qubits
+            #qubit_live = qubits
             qubit_datas = qubits
         qubits = qubits_temp
         counter = 0
@@ -134,18 +166,22 @@ def qubit_thread():
         time.sleep(0.01)  # Update qubits every 100 milliseconds
 
 def audio_thread():
-    global qubits, amplitude, frequency, phase, qubit_datas, qubit_live, counter, features
+    global qubits, amplitude, frequency, phase, qubit_datas, qubit_live, counter, features, spectral_centroid, rms, bpm
     audio = AudioHandler()
     audio.start()
     while audio.stream.is_active():
         amplitude = audio.amplitude
         frequency = audio.frequency
         phase = audio.phase
+        spectral_centroid = audio.spectral_centroid
+        rms = audio.rms
+        bpm = audio.bpm
         prev_features = features
         features = audio.features
 
-
-        print(phase)
+        # print("INTENSITY")
+        # print(intensity)
+        #print(phase)
         # print("Prev")
         # print(prev_features)
         # print("Feat")

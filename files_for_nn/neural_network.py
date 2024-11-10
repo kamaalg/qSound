@@ -29,6 +29,7 @@ y_train_tensor = torch.tensor(y_train, dtype=torch.float32).view(-1, 1)
 X_test_tensor = torch.tensor(X_test, dtype=torch.float32)
 y_test_tensor = torch.tensor(y_test, dtype=torch.float32).view(-1, 1)
 
+
 train_dataset = TensorDataset(X_train_tensor, y_train_tensor)
 test_dataset = TensorDataset(X_test_tensor, y_test_tensor)
 
@@ -55,7 +56,7 @@ class FeedforwardNN(nn.Module):
 
 # Initialize the model
 input_size = X_train.shape[1]
-model = FeedforwardNN(input_size)
+model = FeedforwardNN(24)
 criterion = nn.MSELoss()
 optimizer = optim.Adam(model.parameters(), lr=0.001)
 
@@ -67,6 +68,7 @@ for epoch in range(num_epochs):
     for X_batch, y_batch in train_loader:
         optimizer.zero_grad()
         outputs = model(X_batch)
+        print(outputs)
         loss = criterion(outputs, y_batch)
         loss.backward()
         optimizer.step()
@@ -74,5 +76,7 @@ for epoch in range(num_epochs):
     print(f"Epoch [{epoch + 1}/{num_epochs}], Loss: {running_loss / len(train_loader):.4f}")
 
 # Save the trained model state
-torch.save(model.state_dict(), "entire_model.pth")
+torch.save(model, "entire_model.pth")
+torch.save(model.state_dict(), "model_state_old.pth")
 print("Model training complete and saved.")
+
