@@ -67,19 +67,19 @@ class AudioHandler(object):
         # Compute RMS (Root Mean Square)
         rms = np.sqrt(np.mean(self.buffer ** 2))
         self.features[1] = rms
-        print(f"Root Mean Square: {rms}")
-        print(f"features[1] = {self.features[1]}")
+        #print(f"Root Mean Square: {rms}")
+        #print(f"features[1] = {self.features[1]}")
 
         # Compute Zero Crossing Rate
         zero_crossings = np.where(np.diff(np.sign(self.buffer)))[0]
         zero_crossing_rate = len(zero_crossings) / len(self.buffer)
         self.features[3] = zero_crossing_rate
-        print(f"Zero Crossing Rate: {zero_crossing_rate}")
-        print(f"features[3] = {self.features[3]}")
+        #print(f"Zero Crossing Rate: {zero_crossing_rate}")
+        #print(f"features[3] = {self.features[3]}")
 
         # Compute Amplitude
         self.amplitude = np.max(np.abs(self.buffer))
-        print(f"Amplitude: {self.amplitude}")
+        #print(f"Amplitude: {self.amplitude}")
 
         # Compute FFT to find dominant frequency
         fft_values = fft(self.buffer)
@@ -94,33 +94,33 @@ class AudioHandler(object):
         fft_phases = np.angle(fft_values)  # Get phase for each frequency component
         positive_phases = fft_phases[:len(fft_phases) // 2]  # Phase of positive frequencies
         self.phase = positive_phases[idx]  # Phase of the dominant frequency
-        print(f"Dominant Frequency: {self.frequency} Hz")
+        #print(f"Dominant Frequency: {self.frequency} Hz")
 
         # Calculate Spectral Centroid
         spectral_centroid = np.sum(positive_freqs * positive_magnitudes) / np.sum(positive_magnitudes)
         self.features[2] = spectral_centroid
-        print(f"Spectral Centroid: {spectral_centroid} Hz")
-        print(f"features[2] = {self.features[2]}")
+        #print(f"Spectral Centroid: {spectral_centroid} Hz")
+        #print(f"features[2] = {self.features[2]}")
 
         # Calculate Time Period and Wavelength
         time_period = 1 / self.frequency if self.frequency != 0 else float('inf')
-        print(f"Time Period: {time_period} s")
+        #print(f"Time Period: {time_period} s")
         wavelength = SPEED_OF_SOUND / self.frequency if self.frequency != 0 else float('inf')
-        print(f"Wavelength: {wavelength} m")
+        #print(f"Wavelength: {wavelength} m")
 
         # Estimate BPM (Beats Per Minute)
         bpm = self.estimate_bpm()
         self.features[0] = bpm
-        print(f"Estimated BPM: {bpm}")
-        print(f"features[0] = {self.features[0]}")
+        #print(f"Estimated BPM: {bpm}")
+        #print(f"features[0] = {self.features[0]}")
 
         # Compute MFCCs
         mfccs = librosa.feature.mfcc(y=numpy_array, sr=self.RATE, n_mfcc=20)
         mfccs_mean = np.mean(mfccs, axis=1)
-        print("MFCCs (20 values):", mfccs_mean)
+        #print("MFCCs (20 values):", mfccs_mean)
         self.features[3:23] = mfccs_mean
 
-        print(f"self.features: {self.features}")
+        #print(f"self.features: {self.features}")
 
         return None, pyaudio.paContinue
 

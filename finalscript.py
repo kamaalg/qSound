@@ -16,12 +16,14 @@ from audio_processing_pyaudio import AudioHandler
 
 # global intensity
 intensity = -1.0
+features = []
 
 #global
 qubits = []
 qubit_datas = []
 qubit_live= []
 counter = 0
+
 
 # global wave values
 amplitude, frequency, phase = 0.0, 0.0, 0.0
@@ -37,9 +39,6 @@ def spawn():
     # Create a new particle occasionally for demonstration
     if len(particles) < 100000:
         particles.append(create_particle(intensity))
-    intensity += .001
-    if intensity >= 1.0:
-        intensity = -1.0
 
 
 def update_wave():
@@ -105,6 +104,10 @@ def update(value):
 
     # process intensity in NN, update intensity global val
 
+    if len(features) > 0:
+        intensity = final_nn(features)
+        print(intensity)
+
     # quantum math
 
     spawn()  # create particles
@@ -131,13 +134,20 @@ def qubit_thread():
         time.sleep(0.01)  # Update qubits every 100 milliseconds
 
 def audio_thread():
-    global qubits, amplitude, frequency, phase, qubit_datas, qubit_live, counter
+    global qubits, amplitude, frequency, phase, qubit_datas, qubit_live, counter, features
     audio = AudioHandler()
     audio.start()
     while audio.stream.is_active():
         amplitude = audio.amplitude
         frequency = audio.frequency
         phase = audio.phase
+        prev_features = features
+        features = audio.features
+
+        print("Prev")
+        print(prev_features)
+        print("Feat")
+        print(features)
         time.sleep(0.16)
     audio.stop()
     time.sleep(0.16)  # Update qubits every 100 milliseconds
