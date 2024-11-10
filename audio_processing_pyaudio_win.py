@@ -1,8 +1,10 @@
 import numpy as np
-import pyaudio
+import pyaudiowpatch as pyaudio
 import time
 import librosa
 from scipy.fft import fft, fftfreq
+
+# this works at best occasionally, test machine fills buffer with garbage values
 
 SPEED_OF_SOUND = 343
 
@@ -24,32 +26,24 @@ class AudioHandler(object):
         # [tempo, rms, spectral_centroid, zero_crossing_rate, mfcc0.. mfcc19]
 
     def get_audio_device(self):
-        device_index = None
-        for i in range(0, self.p.get_host_api_info_by_index(0).get('deviceCount')):
-            device: dict = self.p.get_device_info_by_host_api_device_index(0,i)
-            if ("BlackHole" in device['name']) or ("CABLE Output (2-" in device['name']):
-                return device['maxInputChannels'], device['index']
-
-        if device_index == None:
-            raise Exception("Failed to find BlackHole loopback audio device")
-
+        return 2, 5 # placeholder for Windows - not important
+    
     def start(self):
-        self.p = pyaudio.PyAudio()
-        self.stream = self.p.open(input_device_index=self.DEVICE_INDEX,  # BlackHole 16ch
+        self.stream = self.p.open(input_device_index=self.DEVICE_INDEX,  # 1 = MAC 2 = WIN 2CH
                                   format=self.FORMAT,
-                                  channels=2, #self.CHANNELS
+                                  channels=self.CHANNELS, # WIN 16
                                   rate=self.RATE,
                                   input=True,
                                   output=False,
                                   stream_callback=self.callback,
-                                  frames_per_buffer=self.CHUNK,
-                                  )
+                                  frames_per_buffer=self.CHUNK)
 
     def stop(self):
         self.stream.close()
         self.p.terminate()
 
     def callback(self, in_data, frame_count, time_info, flag):
+
         numpy_array = np.frombuffer(in_data, dtype=np.float32)
 
         # Convert multi-channel audio to mono by averaging all channels
@@ -65,14 +59,16 @@ class AudioHandler(object):
         # Append normalized data to buffer
         self.buffer = np.concatenate((self.buffer, normalized_buffer))
 
+
         # Limit buffer size to last 10 seconds
         max_buffer_size = self.RATE * 2
         if len(self.buffer) > max_buffer_size:
             self.buffer = self.buffer[-max_buffer_size:]
 
         # Compute RMS (Root Mean Square)
-        self.rms = np.sqrt(np.mean(self.buffer ** 2))
-        self.features[1] = self.rms
+        rms = np.sqrt(np.mean(self.buffer ** 2))
+        self.rms = rms
+        self.features[1] = rms
         #print(f"Root Mean Square: {rms}")
         #print(f"features[1] = {self.features[1]}")
 
@@ -103,8 +99,9 @@ class AudioHandler(object):
         #print(f"Dominant Frequency: {self.frequency} Hz")
 
         # Calculate Spectral Centroid
-        self.spectral_centroid = np.sum(positive_freqs * positive_magnitudes) / np.sum(positive_magnitudes)
-        self.features[2] = self.spectral_centroid
+        spectral_centroid = np.sum(positive_freqs * positive_magnitudes) / np.sum(positive_magnitudes)
+        self.spectral_centroid = spectral_centroid
+        self.features[2] = spectral_centroid
         #print(f"Spectral Centroid: {spectral_centroid} Hz")
         #print(f"features[2] = {self.features[2]}")
 
@@ -115,8 +112,8 @@ class AudioHandler(object):
         #print(f"Wavelength: {wavelength} m")
 
         # Estimate BPM (Beats Per Minute)
-        self.bpm = self.estimate_bpm()
-        self.features[0] = self.bpm
+        bpm = self.estimate_bpm()
+        self.features[0] = bpm; self.bpm = bpm
         #print(f"Estimated BPM: {bpm}")
         #print(f"features[0] = {self.features[0]}")
 
@@ -132,7 +129,7 @@ class AudioHandler(object):
 
     def estimate_bpm(self):
         # Parameters for onset detection
-        window_size = 1024
+        window_size = 4096
         hop_size = 512
 
         # Compute the energy of each frame
@@ -148,7 +145,7 @@ class AudioHandler(object):
 
         # Detect peaks in energy
         peaks = []
-        threshold = 0.6  # You may need to adjust this threshold
+        threshold = 0.01  # You may need to adjust this threshold
         for i in range(1, len(energy) - 1):
             if energy[i] > threshold and energy[i] > energy[i - 1] and energy[i] > energy[i + 1]:
                 peaks.append(i)
@@ -167,6 +164,7 @@ class AudioHandler(object):
     def mainloop(self):
         while self.stream.is_active():
             time.sleep(0.1)
+
 
 # audio = AudioHandler()
 # audio.start()

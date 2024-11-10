@@ -1,6 +1,6 @@
 ## Getting up and running on Windows
 
-Install a loopback audio device like VB_CABLE
+Install a loopback audio device like VB_CABLE and use Voicemeeter/Sound Settings to get shared audio output (like Mac Multiple Audio Device)
 
 Install Python 3.11
 

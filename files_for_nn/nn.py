@@ -60,7 +60,7 @@ def normalize_individual_values(tensor, data_min, data_max, min_value=-1, max_va
 
 def final_nn(features):
     scalar = StandardScaler()
-    data = pd.read_csv('/Users/brody/PycharmProjects/q-Sound/qSound/files_for_nn/audio_features_with_arousal.csv')
+    data = pd.read_csv('./files_for_nn/audio_features_with_arousal.csv')
     X = data.drop(columns=['arousal']).values
     y = data['arousal'].values
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
@@ -94,7 +94,7 @@ def final_nn(features):
     # Load the model and initialize it with the saved state
     input_size = new_features_tensor_model.shape[1]
     model = FeedforwardNN(input_size)
-    model.load_state_dict(torch.load("/Users/brody/PycharmProjects/q-Sound/qSound/files_for_nn/model_state.pth"))
+    model.load_state_dict(torch.load("./files_for_nn/model_state.pth"))
     model.eval()
 
     # Make prediction

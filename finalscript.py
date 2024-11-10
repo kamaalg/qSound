@@ -11,9 +11,17 @@ import time
 import threading
 from files_for_nn.nn import final_nn
 import numpy as np
-from audio_processing_pyaudio import AudioHandler
 from intensity import calculate_song_intensity
-
+# import correct audio handler for platform
+import platform
+system = platform.system()
+print(f"Launching {system} audio handler")
+if system == "Darwin":
+    from audio_processing_pyaudio import AudioHandler
+elif system == "Windows":
+    # there are a couple of minor tweaks in this file I think
+    # I don't want to port them back to Darwin and break things
+    from audio_processing_pyaudio_win import AudioHandler
 
 # global intensity
 intensity = -1.0
@@ -67,6 +75,7 @@ def update_wave():
 
 def init():
     glEnable(GL_DEPTH_TEST)  # Enable depth testing for 3D rendering
+    glEnable(GL_MULTISAMPLE)
     glClearColor(0.0, 0.0, 0.0, 1.0)  # Set background color to black
 
     # Set up the projection matrix
@@ -231,7 +240,7 @@ def audio_thread():
 
 def main():
     glutInit()
-    glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH)
+    glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH | GLUT_MULTISAMPLE)
     glutInitWindowSize(1920, 1080)
     glutCreateWindow("Particle System with Lifetime")
     init()
