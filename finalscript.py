@@ -83,9 +83,9 @@ def draw():
         particle.draw()
 
     for index, (qubit, data, live) in enumerate(zip(qubits, qubit_datas, qubit_live)):
-        #live['amplitude'] += (-data['amplitude']+qubit['amplitude'])/10
-        #live['frequency'] += (-data['frequency'] + qubit['frequency'])/10
-        #live['phase'] += (-data['phase'] + qubit['phase']) / 10
+        live['amplitude'] += (-data['amplitude']+qubit['amplitude'])/100
+        live['frequency'] += (-data['frequency'] + qubit['frequency'])/100
+        live['phase'] += (-data['phase'] + qubit['phase']) / 100
 
 
         draw_wave(start_time, 2*live['amplitude'], live['frequency']/3, live['phase'], intensity)
