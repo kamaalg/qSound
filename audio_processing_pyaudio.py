@@ -24,14 +24,9 @@ class AudioHandler(object):
 
         channels: int = self.p.get_device_info_by_host_api_device_index(0,device_index).get('maxOutputChannels')
 
-        print(channels)
-        print(device_index)
-
         return channels, device_index
 
     def start(self):
-        print(self.CHANNELS)
-        print(self.DEVICE_INDEX)
         self.stream = self.p.open(input_device_index=self.DEVICE_INDEX,  # BlackHole 16ch
                                   format=self.FORMAT,
                                   channels=self.CHANNELS,
