@@ -6,7 +6,6 @@ from scipy.fft import fft, fftfreq
 
 SPEED_OF_SOUND = 343
 
-
 class AudioHandler(object):
     def __init__(self):
         self.p = pyaudio.PyAudio()
@@ -26,27 +25,26 @@ class AudioHandler(object):
         # [tempo, rms, spectral_centroid, zero_crossing_rate, mfcc0.. mfcc19]
 
     def get_audio_device(self):
+        device_index = None
         for i in range(0, self.p.get_host_api_info_by_index(0).get('deviceCount')):
-            device_name: str = self.p.get_device_info_by_host_api_device_index(0,i).get('name')
-            # if windows using vb_cable pick lower index - probably won't fix since doesn't matter
-            if ("BlackHole" in device_name) or ("CABLE In 16ch" in device_name):
-                device_index: int = i
-                break
+            device: dict = self.p.get_device_info_by_host_api_device_index(0,i)
+            if ("BlackHole" in device['name']):
+                return device['maxInputChannels'], device['index']
 
-        channels: int = self.p.get_device_info_by_host_api_device_index(0, device_index).get('maxInputChannels')
-
-        return channels, device_index
+        if device_index == None:
+            raise Exception("Failed to find BlackHole loopback audio device")
 
     def start(self):
         self.p = pyaudio.PyAudio()
-        self.stream = self.p.open(input_device_index=1,  # BlackHole 16ch
+        self.stream = self.p.open(input_device_index=self.DEVICE_INDEX,  # BlackHole 16ch
                                   format=self.FORMAT,
                                   channels=self.CHANNELS,
                                   rate=self.RATE,
                                   input=True,
                                   output=False,
                                   stream_callback=self.callback,
-                                  frames_per_buffer=self.CHUNK)
+                                  frames_per_buffer=self.CHUNK,
+                                  )
 
     def stop(self):
         self.stream.close()
@@ -170,7 +168,6 @@ class AudioHandler(object):
     def mainloop(self):
         while self.stream.is_active():
             time.sleep(0.1)
-
 
 # audio = AudioHandler()
 # audio.start()
