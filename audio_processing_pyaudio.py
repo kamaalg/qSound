@@ -1,34 +1,22 @@
 import numpy as np
 import pyaudio
 import time
-import librosa
-import matplotlib.pyplot as plot
 from scipy.fft import fft, fftfreq
 
 SPEED_OF_SOUND = 343
 
-#p = pyaudio.PyAudio()
-#info = p.get_host_api_info_by_index(0)
-#numdevices = info.get('deviceCount')
-#
-#for i in range(0, numdevices):
-#    if (p.get_device_info_by_host_api_device_index(0, i).get('maxInputChannels')) > 0:
-#        print("Input Device id ", i, " - ", p.get_device_info_by_host_api_device_index(0, i).get('name'))
-
-
 class AudioHandler(object):
     def __init__(self):
         self.FORMAT = pyaudio.paFloat32
-        self.CHANNELS = 1
+        self.CHANNELS = 16  # Set to match BlackHole's 16 channels
         self.RATE = 48000
-        self.CHUNK = 1024
+        self.CHUNK = int(self.RATE * 0.1)  # 100ms
         self.p = None
-        self.stream = None
-        self.metastream: np.ndarray
+        self.buffer = np.array([], dtype=np.float32)  # Initialize buffer
 
     def start(self):
         self.p = pyaudio.PyAudio()
-        self.stream = self.p.open(input_device_index=2, #TODO: this needs to not be hardcoded
+        self.stream = self.p.open(input_device_index=0,  # BlackHole 16ch
                                   format=self.FORMAT,
                                   channels=self.CHANNELS,
                                   rate=self.RATE,
@@ -42,45 +30,97 @@ class AudioHandler(object):
         self.p.terminate()
 
     def callback(self, in_data, frame_count, time_info, flag):
-        print(in_data)
         numpy_array = np.frombuffer(in_data, dtype=np.float32)
-        #plot.specgram(numpy_array)
-        #plot.show()
-        print(numpy_array)
-        #bpm = librosa.feature.tempo(y=numpy_array) -> record peaks from this iteration only
-        # or build meta-stream arraylist??
-        #print(f"BPM: {bpm}") #debug
-        rms = librosa.feature.rms(y=numpy_array)
-        print(f"Root mean square: {rms})")
-        spectral_centroid = librosa.feature.spectral_centroid(y=numpy_array)
-        print(f"Spectral centroid: {spectral_centroid}")
-        zero_crossing_rate = librosa.feature.zero_crossing_rate(y=numpy_array)
-        print(f"Zero crossing rate: {zero_crossing_rate}")
 
-        amplitude = np.max(np.abs(numpy_array))
+        # Convert multi-channel audio to mono by averaging all channels
+        numpy_array = numpy_array.reshape(-1, self.CHANNELS).mean(axis=1)
+
+        # Append new data to the buffer
+        self.buffer = np.concatenate((self.buffer, numpy_array))
+
+        # Limit buffer size to last 10 seconds
+        max_buffer_size = self.RATE * 10
+        if len(self.buffer) > max_buffer_size:
+            self.buffer = self.buffer[-max_buffer_size:]
+
+        # Compute RMS (Root Mean Square)
+        rms = np.sqrt(np.mean(self.buffer ** 2))
+        print(f"Root Mean Square: {rms}")
+
+        # Compute Zero Crossing Rate
+        zero_crossings = np.where(np.diff(np.sign(self.buffer)))[0]
+        zero_crossing_rate = len(zero_crossings) / len(self.buffer)
+        print(f"Zero Crossing Rate: {zero_crossing_rate}")
+
+        # Compute Amplitude
+        amplitude = np.max(np.abs(self.buffer))
         print(f"Amplitude: {amplitude}")
 
         # Compute FFT to find dominant frequency
-        fft_values = fft(numpy_array)
+        fft_values = fft(self.buffer)
         fft_magnitudes = np.abs(fft_values)
-        freqs = fftfreq(len(numpy_array), 1 / self.RATE)
+        freqs = fftfreq(len(self.buffer), 1 / self.RATE)
 
         # Get the frequency with the highest magnitude in the positive frequency range
-        idx = np.argmax(fft_magnitudes[:len(fft_magnitudes) // 2])
-        frequency = abs(freqs[idx])  # Dominant frequency
-        print(f"Dominant Freq: {frequency}")
+        positive_freqs = freqs[:len(freqs) // 2]
+        positive_magnitudes = fft_magnitudes[:len(fft_magnitudes) // 2]
+        idx = np.argmax(positive_magnitudes)
+        frequency = positive_freqs[idx]
+        print(f"Dominant Frequency: {frequency} Hz")
 
-        # Calculate time period and wavelength
+        # Calculate Spectral Centroid
+        spectral_centroid = np.sum(positive_freqs * positive_magnitudes) / np.sum(positive_magnitudes)
+        print(f"Spectral Centroid: {spectral_centroid} Hz")
+
+        # Calculate Time Period and Wavelength
         time_period = 1 / frequency if frequency != 0 else float('inf')
-        print(f"Time period: {time_period}")
+        print(f"Time Period: {time_period} s")
         wavelength = SPEED_OF_SOUND / frequency if frequency != 0 else float('inf')
-        print(f"Wavelength: {wavelength}")
+        print(f"Wavelength: {wavelength} m")
+
+        # Estimate BPM (Beats Per Minute)
+        bpm = self.estimate_bpm()
+        print(f"Estimated BPM: {bpm}")
+
         return None, pyaudio.paContinue
 
-    def mainloop(self):
-        while (self.stream.is_active()):
-            time.sleep(2.0)
+    def estimate_bpm(self):
+        # Parameters for onset detection
+        window_size = 1024
+        hop_size = 512
 
+        # Compute the energy of each frame
+        energy = []
+        for i in range(0, len(self.buffer) - window_size, hop_size):
+            frame = self.buffer[i:i + window_size]
+            frame_energy = np.sum(frame ** 2)
+            energy.append(frame_energy)
+        energy = np.array(energy)
+
+        # Normalize energy
+        energy = energy / np.max(energy)
+
+        # Detect peaks in energy
+        peaks = []
+        threshold = 0.6  # You may need to adjust this threshold
+        for i in range(1, len(energy) - 1):
+            if energy[i] > threshold and energy[i] > energy[i - 1] and energy[i] > energy[i + 1]:
+                peaks.append(i)
+
+        # Calculate intervals between peaks
+        if len(peaks) > 1:
+            peak_times = np.array(peaks) * hop_size / self.RATE
+            intervals = np.diff(peak_times)
+            avg_interval = np.mean(intervals)
+            bpm = 60 / avg_interval
+        else:
+            bpm = 0  # Not enough peaks to estimate BPM
+
+        return bpm
+
+    def mainloop(self):
+        while self.stream.is_active():
+            time.sleep(0.1)
 
 audio = AudioHandler()
 audio.start()
