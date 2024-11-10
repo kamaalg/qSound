@@ -41,7 +41,7 @@ class AudioHandler(object):
         self.p = pyaudio.PyAudio()
         self.stream = self.p.open(input_device_index=1,  # BlackHole 16ch
                                   format=self.FORMAT,
-                                  channels=self.CHANNELS,
+                                  channels=2, #self.CHANNELS
                                   rate=self.RATE,
                                   input=True,
                                   output=False,

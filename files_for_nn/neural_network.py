@@ -69,9 +69,9 @@ def train_test_model(data_path, batch_size=2, num_epochs=100, hidden_dim=16, lr=
         print(f"Epoch [{epoch + 1}/{num_epochs}], Loss: {avg_loss:.4f}")
 
     # Save the scaler and model for future use
-    torch.save(model.state_dict(), 'trained_model.pth')
-    np.save('scaler_mean.npy', scaler.mean_)
-    np.save('scaler_scale.npy', scaler.scale_)
+    #torch.save(model.state_dict(), 'trained_model3.pth')
+    #np.save('scaler_mean3.npy', scaler.mean_)
+    #np.save('scaler_scale3.npy', scaler.scale_)
 
     print("Model training complete.")
     return model, scaler

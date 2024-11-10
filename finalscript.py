@@ -93,8 +93,10 @@ def draw():
     for index, (qubit, data, live) in enumerate(zip(qubits, qubit_datas, qubit_live)):
         # Smoothly transition 'live' values towards 'qubit' values
         transition_speed = 1.0 / 120  # ~12 frames to complete transition (200ms at 60 FPS)
-
-        live['amplitude'] += (qubit['amplitude'] - live['amplitude']) * transition_speed
+        tintensity = intensity
+        if math.isnan(tintensity):
+            tintensity = 1.0
+        live['amplitude'] += (qubit['amplitude'] - live['amplitude']) * transition_speed * ((tintensity+1)/2)
         temp = (qubit['frequency'] - live['frequency'])/(10)
         if temp > 1.0:
             temp = 1.0
@@ -103,13 +105,13 @@ def draw():
             temp = -1.0
 
         #print(temp)
-        live['frequency'] += temp /500
+        live['frequency'] += temp /800
         # print("Live Freq")
         # print(live['frequency'])
         # print("Q Freq")
         # print(qubit['frequency'])
         live['phase'] += (qubit['phase'] - live['phase']) * transition_speed
-
+        print(live)
         # Optional: Slight damping to stabilize values near the target
         # live['amplitude'] *= 0.99
         # live['frequency'] *= 0.99
@@ -133,11 +135,11 @@ def update(value):
     if len(features) > 0:
         #intensity = -1*calculate_song_intensity(amplitude, frequency, phase, spectral_centroid)
         tintensity = final_nn(features)
-        print("INTENSE SET")
-        print(tintensity)
+        #print("INTENSE SET")
+        #print(tintensity)
         tintensity = tintensity*12+.7
         #tintensity = calculate_song_intensity(amplitude, frequency, phase, spectral_centroid, rms, bpm)
-        print(tintensity)
+        #print(tintensity)
         if(len(intensities)>20):
             intensities.pop(0)
         intensities.append(tintensity)
@@ -158,15 +160,37 @@ def update(value):
 
 
 def qubit_thread():
-    global qubits, amplitude, frequency, phase, qubit_datas, qubit_live, counter, bpm
+    global qubits, amplitude, frequency, phase, qubit_datas, qubit_live, counter, bpm, intensity
     while True:
-        print("BPM2: ", bpm)
+        #print("BPM2: ", bpm)
         bpm_map = (bpm - 1200) / 100
         if bpm_map < 0:
             bpm_map = 0.2
+        tintensity = intensity
+        if math.isnan(tintensity) or tintensity > 1.0:
+            tintensity = 1.0
+        if tintensity < -1.0:
+            tintensity = -1.0
+        def map_nan_to_number(values, replacement_value):
+            # Convert input to a numpy array for efficient processing
+            values = np.array(values, dtype=np.float64)
+            values[np.isnan(values)] = replacement_value
+            return values
 
-        qubits_temp = generate_qubit_data((amplitude**2)*3 * bpm_map, frequency*2 * bpm_map, phase*2*bpm_map)
+        gen_amp = (amplitude ** 2) * 3 * bpm_map + (1 + tintensity)
+        gen_freq = frequency * 2 * bpm_map
+        gen_phase = phase * 2 * bpm_map * (1 + tintensity)
 
+        if math.isnan(gen_amp) or math.isnan(gen_freq) or math.isnan(gen_phase):
+            print("NAN")
+        print(tintensity)
+        #qubits_temp = generate_qubit_data((amplitude**2)*3 * bpm_map + (1+tintensity), frequency*2 * bpm_map, phase*2*bpm_map*(1+tintensity))
+        #qubits_temp = generate_qubit_data((amplitude ** 2) * 3 * bpm_map + (1 + map_nan_to_number(intensity, 1)), frequency * 2 * bpm_map,
+         #                                 phase * 2 * bpm_map * (1 + map_nan_to_number(intensity, 1)))
+        qubits_temp = generate_qubit_data(gen_amp, gen_freq,
+                                          gen_phase)
+
+        print(qubits_temp)
         if(len(qubits) != 0):
             #qubit_live = qubits
             qubit_datas = qubits
