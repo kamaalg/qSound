@@ -103,11 +103,11 @@ def update(value):
 
     # process intensity in NN, update intensity global val
     features = np.array([
-        120.5,  # tempo
-        0.032,  # rms
-        1500.3,  # spectral_centroid
-        0.45,  # zero_crossing_rate
-        -23.0, 17.5, 0.2, -12.3, 7.8, -3.4, 2.1, -6.5, 4.3, -1.2, 0.9, 1.5, -2.8, 3.0, -1.1, 5.6, 7.2, -0.5, 8.3,7.5
+        150.5,  # tempo
+        0.382,  # rms
+        372.3,  # spectral_centroid
+        0.34567,  # zero_crossing_rate
+        -23.0, 73.5, 400, -12.3, 7.8, -3.4, 4000, 6.393, -4.3, 1.2, 0.9, 1.5, 2.8, 3.0, -1.1, 5.6, 7.2, -0.5, 8.3,7.5
         # MFCCs (20 values)
     ])
     final_nn(features)
