@@ -7,16 +7,32 @@ SPEED_OF_SOUND = 343
 
 class AudioHandler(object):
     def __init__(self):
+        self.p = pyaudio.PyAudio()
         self.FORMAT = pyaudio.paFloat32
-        self.CHANNELS = 16  # Set to match BlackHole's 16 channels
+        self.CHANNELS, self.DEVICE_INDEX = self.get_audio_device()  # Set to match BlackHole's 16 channels
         self.RATE = 48000
         self.CHUNK = int(self.RATE * 0.1)  # 100ms
-        self.p = None
         self.buffer = np.array([], dtype=np.float32)  # Initialize buffer
 
+    def get_audio_device(self):
+        for i in range(0, self.p.get_host_api_info_by_index(0).get('deviceCount')):
+            device_name: str = self.p.get_device_info_by_host_api_device_index(0,i).get('name')
+            # if windows using vb_cable pick lower index - probably won't fix since doesn't matter
+            if ("BlackHole" in device_name) or ("CABLE In 16ch" in device_name):
+                device_index: int = i
+                break
+
+        channels: int = self.p.get_device_info_by_host_api_device_index(0,device_index).get('maxOutputChannels')
+
+        print(channels)
+        print(device_index)
+
+        return channels, device_index
+
     def start(self):
-        self.p = pyaudio.PyAudio()
-        self.stream = self.p.open(input_device_index=0,  # BlackHole 16ch
+        print(self.CHANNELS)
+        print(self.DEVICE_INDEX)
+        self.stream = self.p.open(input_device_index=self.DEVICE_INDEX,  # BlackHole 16ch
                                   format=self.FORMAT,
                                   channels=self.CHANNELS,
                                   rate=self.RATE,
