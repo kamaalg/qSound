@@ -20,6 +20,7 @@
 - **Real-Time Audio Processing**: Captures live audio input with customizable device selection.
 - **Quantum Simulation and Visualization**: Converts sound parameters into quantum states and displays them in 3D.
 - **Particle-Based Visualization**: Creates a particle system responsive to the audio’s intensity.
+- **Neural Network Intensity** Determines a time period of a sound wave's intensity to determine fun visual flavors
 - **OpenGL Rendering**: Provides real-time rendering for quantum transformations and particle effects.
 
 
@@ -80,6 +81,7 @@ The quantum_process.py` module leverages Qiskit to create a dynamic quantum visu
 3. **Visualization**:
    - The transformed quantum states are rendered as a wave in an OpenGL environment.
    - Particles represent intensity changes, creating an immersive visual experience based on real-time audio features.
+    
 
 
 
