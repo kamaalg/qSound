@@ -51,5 +51,5 @@ def final_nn(features):
     # Make prediction
     with torch.no_grad():
         model_prediction = model(new_features_tensor_model)
-    print("Predicted Intensity value is:", model_prediction[0].item())
+    #print("Predicted Intensity value is:", model_prediction[0].item())
     return model_prediction[0].item()

@@ -5,18 +5,22 @@ from scipy.fft import fft, fftfreq
 
 SPEED_OF_SOUND = 343
 
+
 class AudioHandler(object):
     def __init__(self):
         self.FORMAT = pyaudio.paFloat32
-        self.CHANNELS = 16  # Set to match BlackHole's 16 channels
+        self.CHANNELS = 2  # Set to match BlackHole's 16 channels
         self.RATE = 48000
         self.CHUNK = int(self.RATE * 0.1)  # 100ms
         self.p = None
         self.buffer = np.array([], dtype=np.float32)  # Initialize buffer
+        self.amplitude = 0.0
+        self.frequency = 0.0
+        self.phase = 0.0
 
     def start(self):
         self.p = pyaudio.PyAudio()
-        self.stream = self.p.open(input_device_index=0,  # BlackHole 16ch
+        self.stream = self.p.open(input_device_index=1,  # BlackHole 16ch
                                   format=self.FORMAT,
                                   channels=self.CHANNELS,
                                   rate=self.RATE,
@@ -30,6 +34,7 @@ class AudioHandler(object):
         self.p.terminate()
 
     def callback(self, in_data, frame_count, time_info, flag):
+
         numpy_array = np.frombuffer(in_data, dtype=np.float32)
 
         # Convert multi-channel audio to mono by averaging all channels
@@ -53,8 +58,8 @@ class AudioHandler(object):
         print(f"Zero Crossing Rate: {zero_crossing_rate}")
 
         # Compute Amplitude
-        amplitude = np.max(np.abs(self.buffer))
-        print(f"Amplitude: {amplitude}")
+        self.amplitude = np.max(np.abs(self.buffer))
+        print(f"Amplitude: {self.amplitude}")
 
         # Compute FFT to find dominant frequency
         fft_values = fft(self.buffer)
@@ -65,17 +70,20 @@ class AudioHandler(object):
         positive_freqs = freqs[:len(freqs) // 2]
         positive_magnitudes = fft_magnitudes[:len(fft_magnitudes) // 2]
         idx = np.argmax(positive_magnitudes)
-        frequency = positive_freqs[idx]
-        print(f"Dominant Frequency: {frequency} Hz")
+        self.frequency = positive_freqs[idx]
+        fft_phases = np.angle(fft_values)  # Get phase for each frequency component
+        positive_phases = fft_phases[:len(fft_phases) // 2]  # Phase of positive frequencies
+        self.phase = positive_phases[idx]  # Phase of the dominant frequency
+        print(f"Dominant Frequency: {self.frequency} Hz")
 
         # Calculate Spectral Centroid
         spectral_centroid = np.sum(positive_freqs * positive_magnitudes) / np.sum(positive_magnitudes)
         print(f"Spectral Centroid: {spectral_centroid} Hz")
 
         # Calculate Time Period and Wavelength
-        time_period = 1 / frequency if frequency != 0 else float('inf')
+        time_period = 1 / self.frequency if self.frequency != 0 else float('inf')
         print(f"Time Period: {time_period} s")
-        wavelength = SPEED_OF_SOUND / frequency if frequency != 0 else float('inf')
+        wavelength = SPEED_OF_SOUND / self.frequency if self.frequency != 0 else float('inf')
         print(f"Wavelength: {wavelength} m")
 
         # Estimate BPM (Beats Per Minute)
@@ -122,7 +130,8 @@ class AudioHandler(object):
         while self.stream.is_active():
             time.sleep(0.1)
 
-audio = AudioHandler()
-audio.start()
-audio.mainloop()
-audio.stop()
+
+# audio = AudioHandler()
+# audio.start()
+# audio.mainloop()
+# audio.stop()

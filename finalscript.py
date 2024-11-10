@@ -11,6 +11,7 @@ import time
 import threading
 from files_for_nn.nn import final_nn
 import numpy as np
+from audio_processing_pyaudio import AudioHandler
 
 
 # global intensity
@@ -44,16 +45,16 @@ def spawn():
 def update_wave():
     global amplitude, frequency, phase, amp, freq, pha
 
-    if abs(amplitude) > 1.0:
-        amp = -1.0*amp
-
-    if abs(phase) > 1*math.pi:
-        pha = -1.0*pha
-    if abs(frequency) > 1.0:
-        freq = -1.0*freq
-    phase += .001*pha
-    amplitude += .001*amp
-    frequency += .001*freq
+    # if abs(amplitude) > 1.0:
+    #     amp = -1.0*amp
+    #
+    # if abs(phase) > 1*math.pi:
+    #     pha = -1.0*pha
+    # if abs(frequency) > 1.0:
+    #     freq = -1.0*freq
+    # phase += .001*pha
+    # amplitude += .001*amp
+    # frequency += .001*freq
 
 
 def init():
@@ -82,9 +83,9 @@ def draw():
         particle.draw()
 
     for index, (qubit, data, live) in enumerate(zip(qubits, qubit_datas, qubit_live)):
-        live['amplitude'] += (-data['amplitude']+qubit['amplitude'])/1000
-        live['frequency'] += (-data['frequency'] + qubit['frequency']) /1000
-        live['phase'] += (-data['phase'] + qubit['phase']) / 1000
+        live['amplitude'] += (-data['amplitude']+qubit['amplitude'])/10
+        live['frequency'] += (-data['frequency'] + qubit['frequency']) /10
+        live['phase'] += (-data['phase'] + qubit['phase']) / 10
 
 
         draw_wave(start_time, 2*live['amplitude'], live['frequency']/2, live['phase']/2, intensity)
@@ -103,15 +104,6 @@ def update(value):
     # take averages for input layer
 
     # process intensity in NN, update intensity global val
-    features = np.array([
-        150.5,  # tempo
-        0.382,  # rms
-        372.3,  # spectral_centroid
-        0.34567,  # zero_crossing_rate
-        -23.0, 73.5, 400, -12.3, 7.8, -3.4, 4000, 6.393, -4.3, 1.2, 0.9, 1.5, 2.8, 3.0, -1.1, 5.6, 7.2, -0.5, 8.3,7.5
-        # MFCCs (20 values)
-    ])
-    intensity = final_nn(features)
 
     # quantum math
 
@@ -138,6 +130,17 @@ def qubit_thread():
             qubit_live = qubits
         time.sleep(0.01)  # Update qubits every 100 milliseconds
 
+def audio_thread():
+    global qubits, amplitude, frequency, phase, qubit_datas, qubit_live, counter
+    audio = AudioHandler()
+    audio.start()
+    while audio.stream.is_active():
+        amplitude = audio.amplitude
+        frequency = audio.frequency
+        phase = audio.phase
+        time.sleep(0.16)
+    audio.stop()
+    time.sleep(0.16)  # Update qubits every 100 milliseconds
 
 
 def main():
@@ -149,12 +152,17 @@ def main():
     glutDisplayFunc(draw)
     glutTimerFunc(16, update, 0)
 
-
     # Start the qubit data generation thread
-    thread = threading.Thread(target=qubit_thread)
-    thread.daemon = True  # Ensures the thread exits when the main program ends
-    thread.start()
+    qubit_thread_instance = threading.Thread(target=qubit_thread)
+    qubit_thread_instance.daemon = True  # Ensures the thread exits when the main program ends
+    qubit_thread_instance.start()
 
+    #Start the audio handler thread
+    audio_thread_instance = threading.Thread(target=audio_thread)
+    audio_thread_instance.daemon = True  # Ensures the thread exits when the main program ends
+    audio_thread_instance.start()
+
+    #Start the GLUT main loop
     glutMainLoop()
 
 main()
