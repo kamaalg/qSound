@@ -60,7 +60,7 @@ class AudioHandler(object):
         self.buffer = np.concatenate((self.buffer, numpy_array))
 
         # Limit buffer size to last 10 seconds
-        max_buffer_size = self.RATE * 10
+        max_buffer_size = self.RATE * 2
         if len(self.buffer) > max_buffer_size:
             self.buffer = self.buffer[-max_buffer_size:]
 
@@ -78,7 +78,7 @@ class AudioHandler(object):
         #print(f"features[3] = {self.features[3]}")
 
         # Compute Amplitude
-        self.amplitude = np.max(np.abs(self.buffer))
+        self.amplitude = np.max(np.abs(self.buffer[:30]))
         #print(f"Amplitude: {self.amplitude}")
 
         # Compute FFT to find dominant frequency
