@@ -83,12 +83,12 @@ def draw():
         particle.draw()
 
     for index, (qubit, data, live) in enumerate(zip(qubits, qubit_datas, qubit_live)):
-        live['amplitude'] += (-data['amplitude']+qubit['amplitude'])/10
-        live['frequency'] += (-data['frequency'] + qubit['frequency']) /10
-        live['phase'] += (-data['phase'] + qubit['phase']) / 10
+        #live['amplitude'] += (-data['amplitude']+qubit['amplitude'])/10
+        #live['frequency'] += (-data['frequency'] + qubit['frequency'])/10
+        #live['phase'] += (-data['phase'] + qubit['phase']) / 10
 
 
-        draw_wave(start_time, 2*live['amplitude'], live['frequency']/2, live['phase']/2, intensity)
+        draw_wave(start_time, 2*live['amplitude'], live['frequency']/3, live['phase'], intensity)
     #draw_wave(start_time, 0.9*amplitude, 0.9*frequency, 0.9*phase, 0.9*intensity)
     #draw_wave(start_time, 0.8*amplitude, 0.8*frequency, 0.8*phase, 0.8*intensity)
 
@@ -119,8 +119,8 @@ def update(value):
 def qubit_thread():
     global qubits, amplitude, frequency, phase, qubit_datas, qubit_live, counter
     while True:
-        qubits_temp = generate_qubit_data(amplitude, frequency, phase)
-        if(len(qubits) == 0):
+        qubits_temp = generate_qubit_data((amplitude**2)*3, frequency*2, phase*2)
+        if(len(qubits) != 0):
             qubit_live = qubits
             qubit_datas = qubits
         qubits = qubits_temp
