@@ -75,6 +75,7 @@ def update_wave():
 
 def init():
     glEnable(GL_DEPTH_TEST)  # Enable depth testing for 3D rendering
+    glEnable(GL_MULTISAMPLE)
     glClearColor(0.0, 0.0, 0.0, 1.0)  # Set background color to black
 
     # Set up the projection matrix
@@ -215,7 +216,7 @@ def audio_thread():
 
 def main():
     glutInit()
-    glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH)
+    glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGB | GLUT_DEPTH | GLUT_MULTISAMPLE)
     glutInitWindowSize(1920, 1080)
     glutCreateWindow("Particle System with Lifetime")
     init()
