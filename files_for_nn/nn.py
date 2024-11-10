@@ -6,6 +6,9 @@ import torch.nn as nn
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 
+import warnings
+warnings.filterwarnings("ignore")
+
 
 class FeedforwardNN(nn.Module):
     def __init__(self, input_size):
@@ -48,5 +51,5 @@ def final_nn(features):
     # Make prediction
     with torch.no_grad():
         model_prediction = model(new_features_tensor_model)
-    print("Predicted Intensity value is:", model_prediction)
+    print("Predicted Intensity value is:", model_prediction[0].item())
     return model_prediction[0].item()

@@ -12,6 +12,7 @@ import threading
 from files_for_nn.nn import final_nn
 import numpy as np
 
+
 # global intensity
 intensity = -1.0
 
@@ -96,7 +97,7 @@ def draw():
 
 
 def update(value):
-    global counter
+    global counter, intensity
     # get audio output, output the current now, shift array
 
     # take averages for input layer
@@ -110,7 +111,7 @@ def update(value):
         -23.0, 73.5, 400, -12.3, 7.8, -3.4, 4000, 6.393, -4.3, 1.2, 0.9, 1.5, 2.8, 3.0, -1.1, 5.6, 7.2, -0.5, 8.3,7.5
         # MFCCs (20 values)
     ])
-    final_nn(features)
+    intensity = final_nn(features)
 
     # quantum math
 
