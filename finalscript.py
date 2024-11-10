@@ -29,7 +29,7 @@ counter = 0
 
 
 # global wave values
-amplitude, frequency, phase, spectral_centroid  = 0.0, 0.0, 0.0, 0.0
+amplitude, frequency, phase, spectral_centroid = 0.0, 0.0, 0.0, 0.0
 rms, bpm = 0.0, 0.0
 amp, freq, pha = 1, 1, 1
 start_time = time.time()
@@ -43,7 +43,12 @@ def spawn():
     # Create a new particle occasionally for demonstration
     if len(particles) < 100000:
         particles.append(create_particle(intensity))
-
+        if intensity > 0.3:
+            particles.append(create_particle(intensity))
+        if intensity > 0.6:
+            particles.append(create_particle(intensity))
+        if intensity > 0.8:
+            particles.append(create_particle(intensity))
 
 def update_wave():
     global amplitude, frequency, phase, amp, freq, pha
@@ -130,13 +135,14 @@ def update(value):
         tintensity = final_nn(features)
         print("INTENSE SET")
         print(tintensity)
-        tintensity = (tintensity+.225)*8
+        tintensity = tintensity*12+.7
         #tintensity = calculate_song_intensity(amplitude, frequency, phase, spectral_centroid, rms, bpm)
         print(tintensity)
         if(len(intensities)>20):
             intensities.pop(0)
         intensities.append(tintensity)
-        print(intensities)
+        #print(intensities)
+        #print(features)
         intensity = np.mean(intensities)
         #print(intensity)
 
@@ -152,9 +158,15 @@ def update(value):
 
 
 def qubit_thread():
-    global qubits, amplitude, frequency, phase, qubit_datas, qubit_live, counter
+    global qubits, amplitude, frequency, phase, qubit_datas, qubit_live, counter, bpm
     while True:
-        qubits_temp = generate_qubit_data((amplitude**2)*3, frequency*2, phase*2)
+        print("BPM2: ", bpm)
+        bpm_map = (bpm - 1200) / 100
+        if bpm_map < 0:
+            bpm_map = 0.2
+
+        qubits_temp = generate_qubit_data((amplitude**2)*3 * bpm_map, frequency*2 * bpm_map, phase*2*bpm_map)
+
         if(len(qubits) != 0):
             #qubit_live = qubits
             qubit_datas = qubits
@@ -164,6 +176,8 @@ def qubit_thread():
             qubit_datas = qubits
             qubit_live = qubits
         time.sleep(0.01)  # Update qubits every 100 milliseconds
+
+
 
 def audio_thread():
     global qubits, amplitude, frequency, phase, qubit_datas, qubit_live, counter, features, spectral_centroid, rms, bpm

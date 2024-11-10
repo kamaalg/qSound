@@ -33,7 +33,7 @@ class AudioHandler(object):
                 device_index: int = i
                 break
 
-        channels: int = self.p.get_device_info_by_host_api_device_index(0,device_index).get('maxOutputChannels')
+        channels: int = self.p.get_device_info_by_host_api_device_index(0, device_index).get('maxInputChannels')
 
         return channels, device_index
 
