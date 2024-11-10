@@ -27,17 +27,16 @@ class FeedforwardNN(nn.Module):
 
 def final_nn(features):
     # Load the saved scaler
-    data = pd.read_csv('files_for_nn/audio_features_with_arousal.csv')
+    # data = pd.read_csv('files_for_nn/audio_features_with_arousal.csv')
 
-    X = data.drop(columns=['arousal']).values
-    y = data['arousal'].values
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+    # X = data.drop(columns=['arousal']).values
+    # y = data['arousal'].values
+    # X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
-    scalar = StandardScaler()
+    entire_scalar = joblib.load('files_for_nn/scaler.pkl')
 
-    scalar.fit(X_train)
     features = features.reshape(1, -1)
-    new_features_model = scalar.transform(features)
+    new_features_model = entire_scalar.transform(np.load("files_for_nn/X_train.npy"))
     new_features_tensor_model = torch.tensor(new_features_model, dtype=torch.float32)
 
     # Load the model and initialize with the saved state
@@ -49,5 +48,5 @@ def final_nn(features):
     # Make prediction
     with torch.no_grad():
         model_prediction = model(new_features_tensor_model)
-        print("Predicted Intensity value is:", model_prediction.item())
-    return model_prediction.item()
+    print("Predicted Intensity value is:", model_prediction[0].item())
+    return model_prediction[0].item()
