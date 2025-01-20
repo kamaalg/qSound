@@ -30,6 +30,7 @@
 - PyAudio
 - Qiskit
 - Pytorch
+- SKlearn
 - Librosa
 - OpenGL
 - Virtual Audio Device (e.g., BlackHole for macOS)
@@ -83,7 +84,28 @@ The quantum_process.py` module leverages Qiskit to create a dynamic quantum visu
 3. **Visualization**:
    - The transformed quantum states are rendered as a wave in an OpenGL environment.
    - Particles represent intensity changes, creating an immersive visual experience based on real-time audio features.
-    
+
+This script is responsible for training a neural network to predict audio intensity based on extracted audio features. It leverages machine learning techniques to create a robust model for real-time analysis. Key functionalities include:
+1.**Data Preprocessing**:
+The script reads audio feature datasets from a CSV file, where each row corresponds to the features of a song segment and the target intensity value.
+The dataset is split into training and testing sets using an 80-20 split for model evaluation.
+Features are standardized using StandardScaler to ensure consistent scaling, improving model performance and convergence.
+2.**Neural Network Design**:
+   A fully connected feedforward neural network is implemented using PyTorch.
+   The network consists of:
+   -An input layer matching the number of audio features.
+   -A single hidden layer with customizable dimensions, activated using ReLU for non-linearity.
+   -An output layer that predicts the intensity of the audio segment.
+3.**Training**:
+   The model is trained using supervised learning and optimized with the Adam optimizer to minimize mean squared error (MSE) loss.
+   Training runs for a specified number of epochs, with batch processing facilitated by PyTorch's DataLoader.
+   At the end of training, the script provides detailed loss metrics for each epoch, ensuring transparency and performance tracking.
+4.**Model Saving and Reusability**:
+   The trained model, along with the feature scaler, can be saved for future use. This allows for quick deployment without retraining.
+5.**Prediction**:
+   A separate function, test_model, enables predictions on new audio data.
+   The input features are scaled using the saved scaler, and the model predicts the intensity value for the new data segment.
+       
 
 
 
