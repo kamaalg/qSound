@@ -29,6 +29,7 @@
 - Python 3.8 or above
 - PyAudio
 - Qiskit
+- Pytorch
 - Librosa
 - OpenGL
 - Virtual Audio Device (e.g., BlackHole for macOS)
