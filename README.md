@@ -43,6 +43,7 @@
 - **`audio_processing_pyaudio.py`**: Handles audio input using PyAudio, extracting amplitude, frequency, phase, and other features.
 - **`quantum_process.py`**: Defines and applies quantum transformations based on sound attributes. Creates quantum registers and applies state changes to qubits based on sound parameters.
 - **`finalscript.py`**: Initializes and manages threads for audio capture, quantum processing, and OpenGL rendering. Coordinates the components in a main application loop.
+- **`files_for_nn`**: Trains a neural network on a custom dataset developed by our team. The network employs supervised learning to analyze the input and provides intensity predictions for the given song at 15 ms intervals.
 
 
 
