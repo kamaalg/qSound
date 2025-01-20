@@ -9,6 +9,7 @@
 - [Prerequisites](#prerequisites)
 - [Project Structure](#project-structure)
 - [Running Instructions](#running-instructions)
+- [🏆 Awards ](#awards)
 
 ---
 
@@ -122,7 +123,14 @@ To execute **qSound**, follow these steps:
 
 Enjoy exploring the quantum-enhanced audio visualization with **qSound**!
 
-       
+### 🏆 Awards  
+
+✨ This project was honored with the **NordVPN Award** as one of the **Best Projects** at **HackUMass 2024**, competing among over **500 talented participants**! 🎉  
+
+![Success](https://media.giphy.com/media/3o7abKhOpu0NwenH3O/giphy.gif)  
+
+We are proud of this achievement and grateful for the recognition! 🚀
+
 
 
 
