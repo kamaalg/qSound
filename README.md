@@ -107,13 +107,21 @@ Features are standardized using StandardScaler to ensure consistent scaling, imp
    A separate function, test_model, enables predictions on new audio data.
    The input features are scaled using the saved scaler, and the model predicts the intensity value for the new data segment.
 
-## Running Instructions
-To execute qSound, follow these steps:
+### Running Instructions
 
-Install Dependencies: Ensure all the dependencies listed in the prerequisites section are installed. Use Python 3 for compatibility and package management.
-Run the Main Script: The primary execution point for the application is final_script.py. Execute this script to launch the program.
-Pre-Trained Models: There is no need to retrain the quantum bits or the neural network, as their states have been pre-saved. The system will utilize these pre-trained models for immediate functionality.
-Enjoy exploring the quantum-enhanced audio visualization with qSound!
+To execute **qSound**, follow these steps:
+
+1. **Install Dependencies**:  
+   Ensure all the dependencies listed in the prerequisites section are installed. Use Python 3 for compatibility and package management.
+
+2. **Run the Main Script**:  
+   The primary execution point for the application is `final_script.py`. Execute this script to launch the program.
+
+3. **Pre-Trained Models**:  
+   There is no need to retrain the quantum bits or the neural network, as their states have been pre-saved. The system will utilize these pre-trained models for immediate functionality.  
+
+Enjoy exploring the quantum-enhanced audio visualization with **qSound**!
+
        
 
 
